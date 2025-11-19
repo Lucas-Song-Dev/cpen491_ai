@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v3
@@ -30,10 +30,30 @@ jobs:
     - name: Run tests
       run: |
         python run_tests.py
+
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.9", "3.10", "3.11"]
+
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install -e .
     
     - name: Run example simulations
       run: |
-        python -m ddr5_power_tool.cli examples/ddr5_6400_spec.json examples/simple_workload.json --quiet
+        python scripts/run_examples.py
 
   lint:
     runs-on: ubuntu-latest
