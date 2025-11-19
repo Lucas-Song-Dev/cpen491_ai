@@ -1,0 +1,79 @@
+{
+  "commands": [
+    {
+      "timestamp": 0,
+      "command": "ACT",
+      "bank": 0,
+      "rank": 0,
+      "row": 512,
+      "column": 0
+    },
+    {
+      "timestamp": 50,
+      "command": "RD",
+      "bank": 0,
+      "rank": 0,
+      "row": 512,
+      "column": 256,
+      "burstLength": 16
+    },
+    {
+      "timestamp": 70,
+      "command": "RD",
+      "bank": 0,
+      "rank": 0,
+      "row": 512,
+      "column": 512,
+      "burstLength": 16
+    },
+    {
+      "timestamp": 150,
+      "command": "PRE",
+      "bank": 0,
+      "rank": 0
+    },
+    {
+      "timestamp": 200,
+      "command": "ACT",
+      "bank": 1,
+      "rank": 0,
+      "row": 1024,
+      "column": 0
+    },
+    {
+      "timestamp": 250,
+      "command": "WR",
+      "bank": 1,
+      "rank": 0,
+      "row": 1024,
+      "column": 128,
+      "burstLength": 16
+    },
+    {
+      "timestamp": 350,
+      "command": "PRE",
+      "bank": 1,
+      "rank": 0
+    },
+    {
+      "timestamp": 1000,
+      "command": "REF",
+      "rank": 0
+    },
+    {
+      "timestamp": 5000,
+      "command": "END_OF_SIMULATION"
+    }
+  ],
+  "metadata": {
+    "dataRate": 6400,
+    "temperature": 50,
+    "toggleRates": {
+      "read": 0.5,
+      "write": 0.5,
+      "dutyCycleRead": 0.5,
+      "dutyCycleWrite": 0.5
+    }
+  }
+}
+

@@ -1,0 +1,46 @@
+{
+  "mempowerspec": {
+    "idd0": 45.0,
+    "idd2n": 25.0,
+    "idd2p": 15.0,
+    "idd3n": 35.0,
+    "idd3p": 10.0,
+    "idd4r": 120.0,
+    "idd4w": 100.0,
+    "idd5b": 60.0,
+    "idd6": 2.0,
+    "vdd": 1.05,
+    "vddq": 0.5,
+    "vddca": 1.05,
+    "ipp": 0.3,
+    "temperature": 50
+  },
+  "memtimingspec": {
+    "tck": 0.312,
+    "tras": 28.0,
+    "trp": 12.0,
+    "trcd": 12.0,
+    "trfc": 280.0,
+    "trfcpb": 140.0,
+    "trfi": 7800.0,
+    "twr": 12.0,
+    "twtr": 6.0,
+    "trrd": 4.0,
+    "tfaw": 12.0,
+    "trc": 40.0,
+    "txp": 3.0,
+    "txsdr": 50.0,
+    "txsdll": 512.0
+  },
+  "architecture": {
+    "nbrOfRanks": 1,
+    "nbrOfBanks": 16,
+    "nbrOfColumns": 1024,
+    "nbrOfRows": 65536,
+    "width": 32,
+    "burstLength": 32,
+    "density": 16,
+    "refreshMode": "per-bank"
+  }
+}
+
