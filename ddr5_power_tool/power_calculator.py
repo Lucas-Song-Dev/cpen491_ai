@@ -137,22 +137,47 @@ class PowerCalculator:
         
         return energy_nj
     
-    def calculate_background_power(self, active_time_ns: float, precharge_time_ns: float) -> tuple[float, float]:
+    def calculate_background_power(self, active_stby_time_ns: float, active_pdn_time_ns: float,
+                                   precharge_stby_time_ns: float, precharge_pdn_time_ns: float) -> tuple[float, float]:
         """
         Calculate background power for active and precharge states.
+        Separates standby (CKE high) from power-down (CKE low) states.
+        
+        Based on Table 2 formulas:
+        - Pds(PRE_STBY) = IDD2N × VDD
+        - Pds(PRE_PDN) = IDD2P × VDD
+        - Pds(ACT_STBY) = IDD3N × VDD
+        - Pds(ACT_PDN) = IDD3P × VDD
+        
         Returns (active_energy, precharge_energy) in nJ
         """
-        # Active background power
+        # Active standby power (ACT_STBY)
         idd3n = self.spec.power.idd3n  # mA
-        power_active_mw = idd3n * self.spec.power.vdd  # mW
-        energy_active_nj = power_active_mw * active_time_ns / 1000.0  # nJ
+        power_active_stby_mw = idd3n * self.spec.power.vdd  # mW
+        energy_active_stby_nj = power_active_stby_mw * active_stby_time_ns / 1000.0  # nJ
         
-        # Precharge background power
+        # Active power-down power (ACT_PDN)
+        idd3p = self.spec.power.idd3p  # mA
+        power_active_pdn_mw = idd3p * self.spec.power.vdd  # mW
+        energy_active_pdn_nj = power_active_pdn_mw * active_pdn_time_ns / 1000.0  # nJ
+        
+        # Precharge standby power (PRE_STBY)
         idd2n = self.spec.power.idd2n  # mA
-        power_precharge_mw = idd2n * self.spec.power.vdd  # mW
-        energy_precharge_nj = power_precharge_mw * precharge_time_ns / 1000.0  # nJ
+        power_precharge_stby_mw = idd2n * self.spec.power.vdd  # mW
+        energy_precharge_stby_nj = power_precharge_stby_mw * precharge_stby_time_ns / 1000.0  # nJ
         
-        return energy_active_nj, energy_precharge_nj
+        # Precharge power-down power (PRE_PDN)
+        idd2p = self.spec.power.idd2p  # mA
+        power_precharge_pdn_mw = idd2p * self.spec.power.vdd  # mW
+        energy_precharge_pdn_nj = power_precharge_pdn_mw * precharge_pdn_time_ns / 1000.0  # nJ
+        
+        # Total active energy (standby + power-down)
+        active_energy_nj = energy_active_stby_nj + energy_active_pdn_nj
+        
+        # Total precharge energy (standby + power-down)
+        precharge_energy_nj = energy_precharge_stby_nj + energy_precharge_pdn_nj
+        
+        return active_energy_nj, precharge_energy_nj
     
     def calculate_powerdown_power(self, duration_ns: float, is_active_pdn: bool) -> float:
         """
@@ -286,25 +311,49 @@ class PowerCalculator:
     def accumulate_background_power(self, start_time_ns: float, end_time_ns: float):
         """
         Accumulate background power between commands.
+        Properly separates standby (CKE high) from power-down (CKE low) states.
         """
         duration_ns = end_time_ns - start_time_ns
         if duration_ns <= 0:
             return
         
-        # Count active and idle banks
-        active_banks = self.state_machine.get_active_banks()
-        idle_banks = self.state_machine.get_idle_banks()
+        from ddr5_power_tool.state_machine import BankState
         
-        n_active = len(active_banks)
-        n_idle = len(idle_banks)
+        # Count banks in each state
+        n_active_stby = 0  # ACTIVE (standby, CKE high)
+        n_active_pdn = 0   # ACTIVE_PDN (power-down, CKE low)
+        n_precharge_stby = 0  # IDLE (standby, CKE high)
+        n_precharge_pdn = 0   # PRE_PDN (power-down, CKE low)
+        
         n_total = self.spec.architecture.nbr_of_ranks * self.spec.architecture.nbr_of_banks
         
-        # Calculate time-weighted background power
-        # Assume uniform distribution of active/idle time
-        active_time = duration_ns * (n_active / n_total) if n_total > 0 else 0.0
-        precharge_time = duration_ns * (n_idle / n_total) if n_total > 0 else duration_ns
+        for (rank, bank), bank_info in self.state_machine.banks.items():
+            if bank_info.state == BankState.ACTIVE:
+                n_active_stby += 1
+            elif bank_info.state == BankState.ACTIVE_PDN:
+                n_active_pdn += 1
+            elif bank_info.state == BankState.IDLE:
+                n_precharge_stby += 1
+            elif bank_info.state == BankState.PRE_PDN:
+                n_precharge_pdn += 1
         
-        bg_active, bg_precharge = self.calculate_background_power(active_time, precharge_time)
+        # Calculate time-weighted background power
+        # Assume uniform distribution across banks
+        if n_total > 0:
+            active_stby_time = duration_ns * (n_active_stby / n_total)
+            active_pdn_time = duration_ns * (n_active_pdn / n_total)
+            precharge_stby_time = duration_ns * (n_precharge_stby / n_total)
+            precharge_pdn_time = duration_ns * (n_precharge_pdn / n_total)
+        else:
+            active_stby_time = 0.0
+            active_pdn_time = 0.0
+            precharge_stby_time = duration_ns
+            precharge_pdn_time = 0.0
+        
+        bg_active, bg_precharge = self.calculate_background_power(
+            active_stby_time, active_pdn_time,
+            precharge_stby_time, precharge_pdn_time
+        )
         
         self.result.background_active_energy += bg_active
         self.result.background_precharge_energy += bg_precharge

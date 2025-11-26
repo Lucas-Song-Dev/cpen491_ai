@@ -64,24 +64,47 @@ class TestPowerCalculator(unittest.TestCase):
         self.assertAlmostEqual(energy, expected, places=2)
     
     def test_background_power_calculation(self):
-        """Test background power calculation."""
-        active_time = 100.0  # ns
-        precharge_time = 200.0  # ns
+        """Test background power calculation with standby and power-down states."""
+        # Test standby states only (no power-down)
+        active_stby_time = 100.0  # ns
+        active_pdn_time = 0.0  # ns
+        precharge_stby_time = 200.0  # ns
+        precharge_pdn_time = 0.0  # ns
         
         bg_active, bg_precharge = self.calculator.calculate_background_power(
-            active_time, precharge_time
+            active_stby_time, active_pdn_time,
+            precharge_stby_time, precharge_pdn_time
         )
         
-        # Active: I_DD3N = 46 mA, V_DD = 1.1 V
+        # Active standby: I_DD3N = 46 mA, V_DD = 1.1 V
         # Power = 46 * 1.1 = 50.6 mW
         # Energy = 50.6 * 100 / 1000 = 5.06 nJ
         expected_active = 46.0 * 1.1 * 100.0 / 1000.0
         self.assertAlmostEqual(bg_active, expected_active, places=2)
         
-        # Precharge: I_DD2N = 35 mA, V_DD = 1.1 V
+        # Precharge standby: I_DD2N = 35 mA, V_DD = 1.1 V
         # Power = 35 * 1.1 = 38.5 mW
         # Energy = 38.5 * 200 / 1000 = 7.7 nJ
         expected_precharge = 35.0 * 1.1 * 200.0 / 1000.0
+        self.assertAlmostEqual(bg_precharge, expected_precharge, places=2)
+        
+        # Test with power-down states
+        active_stby_time = 50.0  # ns
+        active_pdn_time = 50.0  # ns
+        precharge_stby_time = 100.0  # ns
+        precharge_pdn_time = 100.0  # ns
+        
+        bg_active, bg_precharge = self.calculator.calculate_background_power(
+            active_stby_time, active_pdn_time,
+            precharge_stby_time, precharge_pdn_time
+        )
+        
+        # Active: (46 * 50 + 15 * 50) * 1.1 / 1000 = (2300 + 750) * 1.1 / 1000 = 3.355 nJ
+        expected_active = (46.0 * 50.0 + 15.0 * 50.0) * 1.1 / 1000.0
+        self.assertAlmostEqual(bg_active, expected_active, places=2)
+        
+        # Precharge: (35 * 100 + 25 * 100) * 1.1 / 1000 = (3500 + 2500) * 1.1 / 1000 = 6.6 nJ
+        expected_precharge = (35.0 * 100.0 + 25.0 * 100.0) * 1.1 / 1000.0
         self.assertAlmostEqual(bg_precharge, expected_precharge, places=2)
 
 
